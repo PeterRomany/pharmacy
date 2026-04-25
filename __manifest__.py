@@ -10,6 +10,7 @@
         'data/stock_data.xml',
         'views/product_views.xml',
         'views/sale_views.xml',
+        'report/commission_report.xml',
     ],
     'installable': True,
     'application': False,

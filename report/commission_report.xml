@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Search View -->
+    <record id="commission_report_search_view" model="ir.ui.view">
+        <field name="name">commission.report.search</field>
+        <field name="model">sale.order.line</field>
+        <field name="arch" type="xml">
+            <search string="Commission Report">
+
+                <field name="order_id"    string="Sale Order"/>
+                <field name="product_id"  string="Product"/>
+                <field name="salesman_id" string="Salesperson"/>
+
+                <separator/>
+                <filter name="filter_this_month" string="This Month"
+                        domain="[
+                            ('order_date', '&gt;=', (context_today() + relativedelta(day=1)).strftime('%Y-%m-%d 00:00:00')),
+                            ('order_date', '&lt;=', (context_today() + relativedelta(day=31)).strftime('%Y-%m-%d 23:59:59'))
+                        ]"/>
+                <filter name="filter_last_month" string="Last Month"
+                        domain="[
+                            ('order_date', '&gt;=', (context_today() + relativedelta(months=-1, day=1)).strftime('%Y-%m-%d 00:00:00')),
+                            ('order_date', '&lt;=', (context_today() + relativedelta(months=-1, day=31)).strftime('%Y-%m-%d 23:59:59'))
+                        ]"/>
+                <filter name="filter_this_year" string="This Year"
+                        domain="[
+                            ('order_date', '&gt;=', (context_today() + relativedelta(month=1, day=1)).strftime('%Y-%m-%d 00:00:00')),
+                            ('order_date', '&lt;=', (context_today() + relativedelta(month=12, day=31)).strftime('%Y-%m-%d 23:59:59'))
+                        ]"/>
+
+                <separator/>
+                <filter name="filter_has_commission" string="With Commission"
+                        domain="[('commission_amount', '&gt;', 0)]"/>
+                <filter name="filter_confirmed" string="Confirmed Orders"
+                        domain="[('order_id.state', 'in', ['sale', 'done'])]"/>
+
+                <separator/>
+                <filter name="group_salesperson" string="Group by Salesperson"
+                        context="{'group_by': 'salesman_id'}"/>
+                <filter name="group_product" string="Group by Product"
+                        context="{'group_by': 'product_id'}"/>
+                <filter name="group_month" string="Group by Month"
+                        context="{'group_by': 'order_date:month'}"/>
+                <filter name="group_year" string="Group by Year"
+                        context="{'group_by': 'order_date:year'}"/>
+
+            </search>
+        </field>
+    </record>
+
+    <!-- List View -->
+    <record id="commission_report_list_view" model="ir.ui.view">
+        <field name="name">commission.report.list</field>
+        <field name="model">sale.order.line</field>
+        <field name="arch" type="xml">
+            <list string="Commission Report" create="false" edit="false"
+                  decoration-success="commission_amount &gt; 0"
+                  decoration-muted="commission_amount == 0">
+                <field name="order_id"          string="Sale Order"  optional="show"/>
+                <field name="order_partner_id"  string="Customer"    optional="show"/>
+                <field name="salesman_id"        string="Salesperson" optional="show"/>
+                <field name="order_date"        string="Order Date"  optional="show"/>
+                <field name="product_id"        string="Product"     optional="show"/>
+                <field name="product_uom_qty"   string="Qty"         optional="show"/>
+                <field name="price_unit"        string="Unit Price"  optional="show"/>
+                <field name="price_subtotal"    string="Subtotal"
+                                                sum="Total Subtotal" optional="show"/>
+                <field name="commission_amount" string="Commission"
+                                                sum="Total Commission"
+                                                widget="monetary"    optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Pivot View -->
+    <record id="commission_report_pivot_view" model="ir.ui.view">
+        <field name="name">commission.report.pivot</field>
+        <field name="model">sale.order.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Commission Analysis">
+                <field name="salesman_id"       type="row"/>
+                <field name="product_id"        type="row"/>
+                <field name="order_date"        type="col" interval="month"/>
+                <field name="commission_amount" type="measure"/>
+                <field name="price_subtotal"    type="measure"/>
+                <field name="product_uom_qty"   type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Graph View -->
+    <record id="commission_report_graph_view" model="ir.ui.view">
+        <field name="name">commission.report.graph</field>
+        <field name="model">sale.order.line</field>
+        <field name="arch" type="xml">
+            <graph string="Commission by Salesperson" type="bar" stacked="true">
+                <field name="salesman_id"       type="row"/>
+                <field name="product_id"        type="col"/>
+                <field name="commission_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Window Action -->
+    <record id="action_commission_report" model="ir.actions.act_window">
+        <field name="name">Commission Report</field>
+        <field name="res_model">sale.order.line</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="commission_report_search_view"/>
+        <field name="domain">[('commission_amount', '&gt;', 0), ('order_id.state', 'in', ['sale', 'done'])]</field>
+        <field name="context">{
+            'search_default_filter_has_commission': 1,
+            'search_default_filter_confirmed': 1,
+            'search_default_group_salesperson': 1
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No commission data found.</p>
+            <p>Commission amounts appear here once products with a Commission % are sold and orders are confirmed.</p>
+        </field>
+    </record>
+
+    <!-- Menu under Sales > Orders -->
+    <menuitem id="menu_commission_report"
+              name="Commission Report"
+              parent="sale.sale_order_menu"
+              action="action_commission_report"
+              sequence="99"/>
+
+</odoo>
